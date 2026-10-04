@@ -27,11 +27,11 @@ class World(object):
             x = square // self.m
             y  = square % self.n
             self.grid[x][y] = source
-            source += 1
+            source += 2
             x = magic_squares[square] // self.m
             y = magic_squares[square] % self.n
             self.grid[x][y] = destination
-            destination += 1
+            destination += 2
 
     def isTerminalSpace(self, state):
         return state in self.stateSpacePlus and state not in self.stateSpace
@@ -86,8 +86,10 @@ class World(object):
                     print("AG", end=" ")
                 elif col % 2 == 0:
                     print("MI", end=" ")
-                else:
+                elif col > 0 and col % 2 == 1:
                     print("MO", end=" ")
+                elif col == -1:
+                    print(">", end="  ")
             print()
         print("-------------------")
 
@@ -104,7 +106,7 @@ if __name__ == '__main__':
     magic_squares = {18:58, 40:20, 47:62}
     env = World(9,9, magic_squares, None, None)
 
-    alpha = 0.1
+    alpha = 0.14
     gamma = 1
     epsilon = 1.0
 
@@ -113,7 +115,7 @@ if __name__ == '__main__':
         for action in env.possibleActons:
             Q[state, action] = 0
 
-    games = 50000
+    games = 150000
     rewards= np.zeros(games)
     env.render()
     for i in range(games):
@@ -122,8 +124,11 @@ if __name__ == '__main__':
         done = False
         epRewards= 0 
         observation = env.reset()
+        path = []
 
         while not done:
+            if i % 10000 == 0:
+                path.append(env.getRowColumn())
             rand = np.random.random()
             action = maxAction(Q, observation, env.possibleActons) if  rand < 1 - epsilon \
                 else env.actionSpaceSample()
@@ -135,7 +140,11 @@ if __name__ == '__main__':
                 gamma *  Q[observation_, action_]  - Q [observation, action])
             observation = observation_
         
-        epsilon = max(0, epsilon - 2 / games)
+        if i % 10000 == 0:
+            for x,y in path:
+                env.grid[x][y] = -1
+            env.render()
+        epsilon = max(0, epsilon - 1 / games)
         rewards[i] = epRewards
     plt.plot(rewards)
     plt.show()
